@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+    <style>
+      #cas {
+        display: block;
+        border: 1px solid;
+        margin: auto;
+      }
+    </style>
+    <title>秒表</title>
+  </head>
+  <body>
+    <canvas id="cas" width="500" height="500">浏览器不支持canvas</canvas>
+    <div style="width:100px;margin:10px auto">
+      <input
+        type="text"
+        name=""
+        id="time"
+        style="width:40px;"
+        value="50"
+      /><button id="startBtn">开始</button>
+    </div>
+    <script>
+      window.requestNextAnimationFrame = function() {
+        return (
+          window.requestAnimationFrame ||
+          window.webkitRequestAnimationFrame ||
+          window.mozRequestAnimationFrame ||
+          window.msRequestAnimationFrame ||
+          function(callback, element) {
+            var self = this,
+              start,
+              finish;
+            window.setTimeout(function() {
+              start = +new Date();
+              callback(start);
+              finish = +new Date();
+              self.timeout = 1000 / 60 - (finish - start);
+            }, self.timeout);
+          }
+        );
+      };
+
+      function StopWatch(canvasDOM, centerX, centerY, radius, angle) {
+        this.canvasDOM = canvasDOM;
+        this.context = canvasDOM.getContext("2d");
+        this.x = centerX;
+        this.y = centerY;
+        this.radius = radius;
+        this.angle = angle;
+      }
+
+      StopWatch.prototype = {
+        startTime: 0,
+        running: false,
+        elapsed: 0,
+        drawCircle: function(x, y, r, fillStyle, strokeStyle) {
+          this.context.save();
+          this.context.beginPath();
+          this.context.arc(x, y, r, 0, 2 * Math.PI);
+          this.context.fillStyle = fillStyle;
+          this.context.strokeStyle = strokeStyle;
+          this.context.fill();
+          this.context.stroke();
+          this.context.restore();
+        },
+        drawNum: function(x, y, r) {
+          this.context.beginPath();
+          this.context.textAlign = "center";
+          this.context.textBaseline = "middle";
+          var angle = 0;
+          for (var i = 0; i < 12; i++) {
+            var newRadius = r - 8;
+            this.context.moveTo(
+              x + r * Math.cos(angle),
+              y + r * Math.sin(angle)
+            );
+            this.context.lineTo(
+              x + newRadius * Math.cos(angle),
+              y + newRadius * Math.sin(angle)
+            );
+            const text = i * 5 + 15 >= 60 ? i * 5 - 45 : i * 5 + 15;
+            this.context.fillText(
+              text,
+              x + (r + 40) * Math.cos(angle),
+              y + (r + 40) * Math.sin(angle)
+            );
+            angle += Math.PI / 30;
+            for (var j = 0; j < 4; j++) {
+              newRadius = r - 3;
+              this.context.moveTo(
+                x + r * Math.cos(angle),
+                y + r * Math.sin(angle)
+              );
+              this.context.lineTo(
+                x + newRadius * Math.cos(angle),
+                y + newRadius * Math.sin(angle)
+              );
+              angle += Math.PI / 30;
+            }
+          }
+          this.context.stroke();
+        },
+        drawPoint: function(x, y, r, angle) {
+          this.context.beginPath();
+          this.context.moveTo(x, y);
+          this.context.lineTo(x + r * Math.cos(angle), y + r * Math.sin(angle));
+          this.context.stroke();
+          this.drawCircle(x, y, 10, "#ccc");
+          this.drawCircle(
+            x + r * Math.cos(angle),
+            y + r * Math.sin(angle),
+            5,
+            "#ccc"
+          );
+        },
+        drawWatch: function() {
+          this.context.clearRect(
+            0,
+            0,
+            this.canvasDOM.width,
+            this.canvasDOM.height
+          );
+          this.drawCircle(this.x, this.y, this.radius, "#ccc");
+          this.drawCircle(this.x, this.y, this.radius - 20, "#FFF");
+          this.drawNum(this.x, this.y, this.radius - 20);
+          this.drawPoint(this.x, this.y, this.radius - 10, this.angle);
+        },
+        start: function() {
+          this.startTime = +new Date();
+          this.running = true;
+        },
+        stop: function() {
+          this.elapsed = +new Date() - this.startTime;
+          this.running = false;
+        },
+        isRunning: function() {
+          return this.running;
+        },
+        getElapsedTime: function() {
+          if (this.running) {
+            return +new Date() - this.startTime;
+          } else {
+            return this.elapsed;
+          }
+        }
+      };
+
+      const canvas = document.getElementById("cas");
+      const sw = new StopWatch(
+        canvas,
+        canvas.width / 2,
+        canvas.height / 2,
+        150,
+        -0.5 * Math.PI
+      );
+      sw.drawWatch();
+      document.getElementById("startBtn").onclick = function() {
+        var time;
+        try {
+          time = parseInt(document.getElementById("time").value);
+        } catch (err) {
+          alert("格式错误");
+          return;
+        }
+        sw.angle = (Math.PI * time) / 30 - 0.5 * Math.PI;
+        sw.running = true;
+        sw.drawWatch();
+        sw.elapsed = 0;
+        sw.start();
+        animate();
+        function animate() {
+          if (sw.isRunning() && sw.getElapsedTime() <= time * 1000) {
+            var t = sw.getElapsedTime();
+            sw.angle =
+              (Math.PI * time) / 30 - (Math.PI * t) / 30000 - 0.5 * Math.PI;
+            sw.drawWatch();
+            requestAnimationFrame(animate);
+          }
+        }
+      };
+    </script>
+  </body>
+</html>
