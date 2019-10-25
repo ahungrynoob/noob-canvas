@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+    <style>
+      #cas {
+        display: block;
+        border: 1px solid;
+        margin: auto;
+      }
+    </style>
+    <title>绘制多边形</title>
+  </head>
+  <body>
+    <canvas id="cas" width="600" height="500">浏览器不支持canvas</canvas>
+    <div style="text-align:center">
+      <button id="pen">画笔</button>
+      画<input
+        type="number"
+        min="3"
+        id="changeSide"
+        value="6"
+        style="width:50px"
+      />边型 &nbsp;&nbsp;&nbsp;
+      <button id="clear">橡皮擦</button>
+      <input
+        type="range"
+        step="1"
+        value="50"
+        min="1"
+        max="100"
+        id="clearRange"
+      />
+    </div>
+    <script>
+      const canvasElement = document.getElementById("cas");
+      const context = canvasElement.getContext("2d");
+      // to test
+      context.fillStyle = "#f00";
+      context.fillRect(0, 0, canvasElement.width, canvasElement.height);
+      const clearBtn = document.getElementById("clear");
+      const penBtn = document.getElementById("pen");
+      const sideInput = document.getElementById("changeSide");
+      const clearInput = document.getElementById("clearRange");
+
+      clearBtn.onclick = function(clickEvent) {
+        const clickMouse = {
+          x:
+            clickEvent.clientX +
+            document.documentElement.scrollLeft +
+            document.body.scrollLeft -
+            canvasElement.offsetLeft,
+          y:
+            clickEvent.clientY +
+            document.documentElement.scrollTop +
+            document.body.scrollTop -
+            canvasElement.offsetTop
+        };
+        const rubber = new Rubber(
+          context,
+          canvasElement.width,
+          canvasElement.height,
+          clickEvent.x,
+          clickEvent.y,
+          clearInput.value
+        );
+
+        let isRub = false;
+
+        // to move rubber
+        window.onmousemove = function(moveEvent) {
+          const moveMouse = {
+            x:
+              moveEvent.clientX +
+              document.documentElement.scrollLeft +
+              document.body.scrollLeft -
+              canvasElement.offsetLeft,
+            y:
+              moveEvent.clientY +
+              document.documentElement.scrollTop +
+              document.body.scrollTop -
+              canvasElement.offsetTop
+          };
+          rubber.move(moveMouse.x, moveMouse.y, isRub);
+        };
+
+        // to rub the canvas
+        canvasElement.onmousedown = function() {
+          isRub = true;
+          window.onmouseup = function() {
+            isRub = false;
+          };
+        };
+      };
+    </script>
+    <script>
+      const utils = {
+        getImgData: function(context, w, h) {
+          return context.getImageData(0, 0, w, h);
+        },
+        setImgData: function(context, imageData) {
+          return context.putImageData(imageData, 0, 0);
+        }
+      };
+    </script>
+    <script>
+      function Rubber(context, width, height, x, y, r) {
+        this.context = context;
+        this.width = width;
+        this.height = height;
+        this.x = x;
+        this.y = y;
+        this.r = r;
+        this.imgData = utils.getImgData(this.context, this.width, this.height);
+      }
+
+      Rubber.prototype = {
+        create: function(isRub) {
+          if (!isRub) {
+            this.imgData = utils.getImgData(
+              this.context,
+              this.width,
+              this.height
+            );
+          }
+          this.context.save();
+          this.context.beginPath();
+          this.context.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
+          this.context.fillStyle = "#FFF";
+          this.context.fill();
+          if (isRub) {
+            this.imgData = utils.getImgData(
+              this.context,
+              this.width,
+              this.height
+            );
+          }
+          this.context.stroke();
+        },
+        clear: function() {
+          this.context.clip();
+          this.context.clearRect(0, 0, this.width, this.height);
+          this.context.restore();
+        },
+        move: function(x, y, isRub) {
+          this.context.clearRect(0, 0, this.width, this.height);
+          this.x = x;
+          this.y = y;
+          utils.setImgData(this.context, this.imgData);
+          this.create(isRub);
+        }
+      };
+    </script>
+  </body>
+</html>
