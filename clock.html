@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+    <style>
+      #cas {
+        display: block;
+        border: 1px solid;
+        margin: auto;
+      }
+    </style>
+    <title>时钟</title>
+  </head>
+  <body>
+    <canvas id="cas" width="500" height="500">浏览器不支持canvas</canvas>
+    <script>
+      const canvasElement = document.getElementById("cas");
+      const context = canvasElement.getContext("2d");
+      const RADIUS = 100;
+    </script>
+    <script>
+      function Clock(context, x, y, r) {
+        this.context = context;
+        this.x = x;
+        this.y = y;
+        this.r = r;
+        this.draw();
+      }
+
+      Clock.prototype = {
+        draw: function() {
+          this.drawCircle();
+          this.drawNumber();
+          const animate = () => {
+            this.context.clearRect(
+              0,
+              0,
+              canvasElement.width,
+              canvasElement.height
+            );
+            this.context.putImageData(this.imgData, 0, 0);
+            this.drawPoints();
+            window.requestAnimationFrame(animate);
+          };
+          this.imgData = this.context.getImageData(
+            0,
+            0,
+            canvasElement.width,
+            canvasElement.height
+          );
+          animate();
+        },
+        drawCircle: function() {
+          this.context.beginPath();
+          this.context.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
+          this.context.stroke();
+          this.context.save();
+          this.context.beginPath();
+          this.context.arc(this.x, this.y, 5, 0, 2 * Math.PI);
+          this.context.fill();
+          this.context.restore();
+        },
+        drawNumber: function() {
+          this.context.font = "18px sans-serif";
+          this.context.textAlign = "center";
+          this.context.textBaseline = "middle";
+          for (let i = 0; i < 12; i++) {
+            const num = i <= 9 ? i + 3 : i - 9;
+            this.context.fillText(
+              num,
+              this.x + Math.cos((Math.PI / 6) * i) * (this.r - 15),
+              this.y + Math.sin((Math.PI / 6) * i) * (this.r - 15)
+            );
+          }
+        },
+        drawPoints: function() {
+          const { second, minute, hour } = this.getAngles();
+
+          const secondEndPoint = {
+            x: this.x + Math.cos(second) * 0.9 * this.r,
+            y: this.y + Math.sin(second) * 0.9 * this.r
+          };
+          const minuteEndPoint = {
+            x: this.x + Math.cos(minute) * 0.7 * this.r,
+            y: this.y + Math.sin(minute) * 0.7 * this.r
+          };
+          const hourEndPoint = {
+            x: this.x + Math.cos(hour) * 0.5 * this.r,
+            y: this.y + Math.sin(hour) * 0.5 * this.r
+          };
+          this.drawLine(secondEndPoint.x, secondEndPoint.y);
+          this.drawLine(minuteEndPoint.x, minuteEndPoint.y);
+          this.drawLine(hourEndPoint.x, hourEndPoint.y);
+        },
+        getAngles: function() {
+          const date = new Date();
+          const second = date.getSeconds();
+          const minute = date.getMinutes();
+          const hour =
+            date.getHours() + 1 > 12 ? date.getHours() - 12 : date.getHours();
+          const secondAngle = (second / 30) * Math.PI - Math.PI / 2;
+          const minuteAngle =
+            (minute / 30) * Math.PI - Math.PI / 2 + (second / 1800) * Math.PI;
+          const hourAngle =
+            (hour / 6) * Math.PI - Math.PI / 2 + (minute / 360) * Math.PI;
+          return {
+            second: secondAngle,
+            minute: minuteAngle,
+            hour: hourAngle
+          };
+        },
+        drawLine: function(x, y) {
+          this.context.beginPath();
+          this.context.moveTo(this.x, this.y);
+          this.context.lineTo(x, y);
+          this.context.stroke();
+        }
+      };
+    </script>
+    <script>
+      new Clock(
+        context,
+        canvasElement.width / 2,
+        canvasElement.height / 2,
+        RADIUS
+      );
+    </script>
+  </body>
+</html>
