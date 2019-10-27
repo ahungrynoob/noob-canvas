@@ -97,7 +97,11 @@
             this.vy = -this.vy;
           }
           if (this.useCache) {
-            this.context.drawImage(this.cacheCanvas, this.x, this.y);
+            this.context.drawImage(
+              this.cacheCanvas,
+              this.x - this.r,
+              this.y - this.r
+            );
             return;
           }
           this.paint(this.context, this.x, this.y);
