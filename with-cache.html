@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+      }
+      #cas {
+        display: block;
+        background-color: rgba(0, 0, 0, 0);
+        margin: auto;
+        border: 1px solid;
+      }
+    </style>
+    <title>cache test(no cache)</title>
+  </head>
+  <body>
+    <canvas id="cas" width="800" height="600">浏览器不支持canvas</canvas>
+    <div style="text-align:center">
+      It is smooth although with 1000 circles.
+    </div>
+    <script src="./assets/js/stats.min.js"></script>
+    <script>
+      const canvasElement = document.getElementById("cas");
+      const context = canvasElement.getContext("2d");
+      const borderWidth = 2;
+
+      const utils = {
+        getRandom(min, max) {
+          return Math.random() * (max - min) + min;
+        }
+      };
+
+      var stats = new Stats();
+      stats.setMode(0);
+      stats.domElement.style.position = "absolute";
+      stats.domElement.style.right = "0px";
+      stats.domElement.style.top = "0px";
+      document.body.appendChild(stats.domElement);
+    </script>
+    <script>
+      function Ball(context, x, y, vx, vy, useCache) {
+        this.context = context;
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.useCache = useCache;
+        this.r = Math.round(utils.getRandom(20, 40));
+        this.colors = [];
+        this.len = Math.round(this.r / borderWidth);
+        for (let i = 0; i < this.len; i++) {
+          this.colors.push(
+            `rgba(${Math.round(utils.getRandom(0, 255))},${Math.round(
+              utils.getRandom(0, 255)
+            )},${Math.round(utils.getRandom(0, 255))},1)`
+          );
+        }
+        if (useCache) {
+          this.cacheCanvas = document.createElement("canvas");
+          this.cacheCtx = this.cacheCanvas.getContext("2d");
+          this.cacheCanvas.width = 2 * this.r;
+          this.cacheCanvas.height = 2 * this.r;
+          this.cache();
+        }
+      }
+
+      Ball.prototype = {
+        paint: function(ctx, x, y) {
+          ctx.save();
+          ctx.lineWidth = borderWidth;
+          let j = 0;
+          for (let i = 1; i < this.r; i += borderWidth) {
+            ctx.beginPath();
+            ctx.strokeStyle = this.colors[j];
+            ctx.arc(x, y, i, 0, 2 * Math.PI);
+            ctx.stroke();
+            j++;
+          }
+          ctx.restore();
+        },
+        cache: function() {
+          this.paint(this.cacheCtx, this.r, this.r);
+        },
+        move: function() {
+          this.x += this.vx;
+          this.y += this.vy;
+          if (this.x < this.r || this.x > canvasElement.width - this.r) {
+            this.x = this.x < this.r ? this.r : canvasElement.width - this.r;
+            this.vx = -this.vx;
+          }
+          if (this.y < this.r || this.y > canvasElement.height - this.r) {
+            this.y = this.y < this.r ? this.r : canvasElement.height - this.r;
+            this.vy = -this.vy;
+          }
+          if (this.useCache) {
+            this.context.drawImage(this.cacheCanvas, this.x, this.y);
+            return;
+          }
+          this.paint(this.context, this.x, this.y);
+        }
+      };
+    </script>
+    <script>
+      function Game(num, useCache) {
+        this.num = num;
+        this.useCache = useCache;
+        this.balls = [];
+      }
+
+      Game.prototype = {
+        animate: function() {
+          context.clearRect(0, 0, canvasElement.width, canvasElement.height);
+          this.balls.forEach(ball => {
+            ball.move();
+          });
+          stats.update();
+          window.requestAnimationFrame(this.animate.bind(this));
+        },
+        start: function() {
+          for (let i = 0; i < this.num; i++) {
+            const postion = {
+              x: utils.getRandom(0, canvasElement.width),
+              y: utils.getRandom(0, canvasElement.height)
+            };
+            const velocity = {
+              x: utils.getRandom(-10, 10),
+              y: utils.getRandom(-10, 10)
+            };
+            this.balls.push(
+              new Ball(
+                context,
+                postion.x,
+                postion.y,
+                velocity.x,
+                velocity.y,
+                this.useCache
+              )
+            );
+          }
+          this.animate();
+        }
+      };
+      new Game(1000, true).start();
+    </script>
+  </body>
+</html>
